@@ -62,7 +62,7 @@ if __name__ == "__main__":
     gt = np.load(args.gt)
     step = 0
     # for step in tqdm(range(1, args.num_steps + 1), leave=True, desc="Training"):
-    wandb.init(project="MAVD", name=f"vonly_seqlen20_seed_{args.seed}", config=args, reinit=True)
+    wandb.init(project="MAVD", name=f"vonly_seqlen100_seed_{args.seed}", config=args, reinit=True)
     for epoch in tqdm(range(10), leave=True, desc="Training Epochs"):
         for batch_data in tqdm(train_loader, leave=False, desc="Training Batches"):
             # if (step-1) % len(train_loader) == 0:

@@ -1,11 +1,11 @@
 import torch
 from tqdm import tqdm
 
-def train(v_net, a_net, f_net, va_net, vf_net, vaf_net, dataloader, optimizer, criterion, criterion_disl, index, lamda1, lamda2, lamda3):
+def train(v_net, a_net, f_net, va_net, vf_net, vaf_net, data, optimizer, criterion, criterion_disl, index, lamda1, lamda2, lamda3):
 
     with torch.set_grad_enabled(True):
 
-        f_v, f_a, f_f, label  = next(dataloader)
+        f_v, f_a, f_f, label  = data
 
         v_net.train()
         a_net.train()
@@ -55,3 +55,57 @@ def train(v_net, a_net, f_net, va_net, vf_net, vaf_net, dataloader, optimizer, c
 
 
         
+def train_v_only(v_net, a_net, f_net, va_net, vf_net, vaf_net, data, optimizer, criterion, criterion_disl, index, lamda1, lamda2, lamda3):
+
+    with torch.set_grad_enabled(True):
+
+        f_v, f_a, f_f, label  = data
+
+        v_net.train()
+
+
+        seq_len = torch.sum(torch.max(torch.abs(f_v), dim=2)[0] > 0, 1)
+        f_v = f_v[:, :torch.max(seq_len), :]
+
+        v_data = f_v.cuda()
+
+        label = label.cuda()
+        v_predict = v_net(v_data, seq_len)
+
+        total_loss, loss_dict_list = criterion(v_predict, label)
+
+        optimizer.zero_grad()
+        total_loss.backward()
+        optimizer.step()
+        
+        return loss_dict_list
+    
+def train_vf_vanilla(v_net, f_net, merger, data, optimizer, criterion, criterion_disl, index, lamda1, lamda2, lamda3):
+
+    with torch.set_grad_enabled(True):
+
+        f_v, f_a, f_f, label  = data
+
+        v_net.train()
+
+
+        seq_len = torch.sum(torch.max(torch.abs(f_v), dim=2)[0] > 0, 1)
+        f_v = f_v[:, :torch.max(seq_len), :]
+        f_f = f_f[:, :torch.max(seq_len), :]
+
+        v_data = f_v.cuda()
+        f_data = f_f.cuda()
+
+        label = label.cuda()
+        v_predict = v_net(v_data, seq_len)
+        f_predict = f_net(f_data, seq_len)
+        
+        breakpoint()
+
+        total_loss, loss_dict_list = criterion(v_predict, label)
+
+        optimizer.zero_grad()
+        total_loss.backward()
+        optimizer.step()
+        
+        return loss_dict_list

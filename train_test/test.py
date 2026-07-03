@@ -42,3 +42,27 @@ def test(v_net, a_net, f_net, va_net, vf_net, vaf_net, test_loader, gt, test_inf
         test_info["m_ap"].append(m_ap)
 
         
+def test_v_only(v_net, a_net, f_net, va_net, vf_net, vaf_net, test_loader, gt, test_info, epoch):
+    
+    with torch.no_grad():
+
+        v_net.eval()
+        
+        m_pred = torch.zeros(0).cuda()
+
+        for i, (f_v, f_a, f_f) in tqdm(enumerate(test_loader)):
+            
+            v_data = f_v.cuda()
+            a_data = f_a.cuda()
+            f_data = f_f.cuda()
+
+            v_res = v_net(v_data)
+            m_out = torch.mean(v_res["output"], 0)
+            m_pred = torch.cat((m_pred, m_out))
+
+        m_pred = list(m_pred.cpu().detach().numpy())
+        precision, recall, th = precision_recall_curve(list(gt), np.repeat(m_pred, 16))
+        m_ap = auc(recall, precision)
+
+        test_info["iteration"].append(epoch)
+        test_info["m_ap"].append(m_ap)

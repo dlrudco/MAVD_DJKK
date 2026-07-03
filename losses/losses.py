@@ -87,6 +87,29 @@ class AD_Loss(nn.Module):
 
         return U_MIL_loss, loss_dict
     
+class AD_Loss_v_only(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.bce = nn.BCELoss()
+
+    def get_loss(self, result, label):
+
+        output = result['output']
+        output_loss = self.bce(output, label)
+
+        return output_loss
+        
+    def forward(self, v_result, label):
+
+        label = label.float()
+
+        v_loss = self.get_loss(v_result, label)
+        U_MIL_loss = v_loss 
+
+        loss_dict = {}
+        loss_dict['U_MIL_loss'] = U_MIL_loss
+
+        return U_MIL_loss, loss_dict
 
 class DISL_Loss(nn.Module):
     def __init__(self) -> None:
