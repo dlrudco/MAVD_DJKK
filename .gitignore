@@ -1,2 +1,4 @@
 *.npy
 *.zip
+XDData/
+*/__pycache__/*
