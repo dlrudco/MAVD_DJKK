@@ -1,4 +1,10 @@
 *.npy
 *.zip
 XDData/
-*/__pycache__/*
+__pycache__/
+outputs/
+wandb/
+test_outputs/
+saved_models/seed_*/
+*.log
+*_changes.diff

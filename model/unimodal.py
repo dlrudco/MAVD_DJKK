@@ -43,7 +43,7 @@ class MIL(nn.Module):
         return mmil_logits, avf_out    
 
 class Unimodal(Module):
-    def __init__(self, input_size, h_dim=512, feature_dim=64):
+    def __init__(self, input_size, h_dim=512, feature_dim=64, num_classes=0):
         super().__init__()
 
         self.embedding = Temporal(input_size,feature_dim)
@@ -51,14 +51,23 @@ class Unimodal(Module):
 
         self.mil = MIL(input_dim=feature_dim, h_dim=h_dim)
 
+        # vfa_cls --lamda_clip_cls: unimodal 자체 class head (Multimodal.cls_head 와 같은 구조), raw logits
+        self.num_classes = num_classes
+        if num_classes > 0:
+            self.cls_head = nn.Sequential(nn.Linear(feature_dim, h_dim), nn.ReLU(),
+                                          nn.Linear(h_dim, num_classes))
+
     def forward(self, data, seq_len=None, em_flag=True):
 
         if em_flag is True:
-            data = self.embedding(data) 
+            data = self.embedding(data)
             data = self.selfatt(data)
 
         output, avf_out = self.mil(data, seq_len)
-            
-        return {"output": output,
-                "avf_out": avf_out,
-                "satt_f": data}
+
+        result = {"output": output,
+                  "avf_out": avf_out,
+                  "satt_f": data}
+        if self.num_classes > 0:
+            result["cls_logits"] = self.cls_head(data)   # (B, T, num_classes)
+        return result

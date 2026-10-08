@@ -29,6 +29,15 @@ def save_best_record(test_info, file_path):
     fo.write("m_ap: {:.4f}\n".format(test_info["m_ap"][-1]))
 
 
+def save_cls_record(test_info, file_path):
+    with open(file_path, "w") as fo:
+        fo.write("iteration: {}\n".format(test_info["iteration"][-1]))
+        for k in ["m_ap", "cls_map7"]:
+            fo.write("{}: {:.4f}\n".format(k, test_info[k][-1]))
+        for c, ap in test_info["cls_ap"][-1].items():
+            fo.write("ap_{}: {:.4f}\n".format(c, ap))
+
+
 def pad(feat, min_len):
     if np.shape(feat)[0] <= min_len:
         return np.pad(feat, ((0, min_len - np.shape(feat)[0]), (0, 0)), mode='constant', constant_values=0)

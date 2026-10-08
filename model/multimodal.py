@@ -3,12 +3,13 @@ import torch.nn as nn
 import torch.nn.init as init
 from torch.nn.modules.module import Module
 from model.tcn import TemporalConvNet
-
+from model.self_attention import Transformer
 
 class TCNModel(nn.Module):
     def __init__(self, input_size, num_channels, kernel_size=2, dropout=0.0):
         super(TCNModel, self).__init__()
-        self.tcn = TemporalConvNet(input_size, num_channels, kernel_size=kernel_size, dropout=dropout)
+        self.tcn = TemporalConvNet(input_size, num_channels, kernel_size=kernel_size, dropout=dropout)  
+        
 
     def forward(self, x):
         x = x.permute(0, 2, 1) 
@@ -42,24 +43,35 @@ class MIL(nn.Module):
         return mmil_logits, avf_out    
 
 class Multimodal(Module):
-    def __init__(self, input_size, h_dim=32, feature_dim=64):
+    def __init__(self, input_size, h_dim=32, feature_dim=64, num_classes=0):
         super().__init__()
 
         self.embedding = nn.Sequential(nn.Linear(input_size, input_size//2), nn.ReLU(), nn.Dropout(0.0),
                                         nn.Linear(input_size//2, feature_dim), nn.ReLU())
         self.tcn = TCNModel(input_size=feature_dim, num_channels=[feature_dim, feature_dim, feature_dim])
-
+        # self.attn = Transformer(feature_dim, 2, 4, feature_dim//2, feature_dim, dropout=0.0)
         self.mil = MIL(input_dim=feature_dim, h_dim=h_dim)
+
+        # class head next to the binary MIL head: snippet-level raw logits, softmax / sigmoid is applied in the loss / test
+        self.num_classes = num_classes
+        if num_classes > 0:
+            self.cls_head = nn.Sequential(nn.Linear(feature_dim, h_dim), nn.ReLU(),
+                                          nn.Linear(h_dim, num_classes))
 
 
     def forward(self, data, seq_len=None):
 
         data = self.embedding(data)
+        # data = self.attn(data)
         data = self.tcn(data)
-
+        # breakpoint()
+        
         output, avf_out = self.mil(data, seq_len)
-            
-        return {"output": output,
-                "avf_out": avf_out,
-                "satt_f": data}
+
+        result = {"output": output,
+                  "avf_out": avf_out,
+                  "satt_f": data}
+        if self.num_classes > 0:
+            result["cls_logits"] = self.cls_head(data)   # (B, T, num_classes)
+        return result
     
